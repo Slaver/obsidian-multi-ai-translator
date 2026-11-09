@@ -18,7 +18,11 @@ Translate your Obsidian notes using [l10n](https://l10n.dev).dev — an AI-power
 
 ## Requirements
 
-A free [l10n.dev](https://l10n.dev) account. You receive **10,000 characters free per month** after signing up. Get your API key at [l10n.dev/ws/keys](https://l10n.dev/ws/keys).
+A free [l10n.dev](https://l10n.dev) account. New users get a 3-day free trial with **10,000 characters**; after that, translation requires a monthly subscription. Get your API key at [l10n.dev/ws/keys](https://l10n.dev/ws/keys).
+
+## Pricing
+
+Monthly subscription plans include 100,000, 1,000,000 or 5,000,000 characters per month, and each starts with a 3-day free trial. Plans renew monthly and you can cancel anytime on the Billing page. Unused characters carry over when you renew or upgrade early. See [l10n.dev/#pricing](https://l10n.dev/#pricing) for plans and prices.
 
 ## Installation
 

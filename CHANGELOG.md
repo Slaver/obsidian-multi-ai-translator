@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] — 2026-11-09
+
+- Updated for l10n.dev subscription plans: the 3-day free trial with 10,000 characters replaces the monthly free quota
+- The **Buy characters** button is now **View plans**; the insufficient balance notice points to subscribing or upgrading
+- README now lists the Basic, Standard and Pro plans
+
 ## [1.3.1] — 2026-08-11
 
 - Settings are now discoverable in Obsidian's settings search on 1.13.0 and later (declarative settings API); older versions are unaffected

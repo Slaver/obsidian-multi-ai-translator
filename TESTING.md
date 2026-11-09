@@ -4,7 +4,7 @@
 
 - [Node.js](https://nodejs.org/) 18 or later
 - An Obsidian vault (desktop or mobile)
-- A [l10n.dev](https://l10n.dev) account and API key — get one free at [l10n.dev/ws/keys](https://l10n.dev/ws/keys)
+- A [l10n.dev](https://l10n.dev) account and API key — sign up for a 3-day free trial (10,000 characters) and get your key at [l10n.dev/ws/keys](https://l10n.dev/ws/keys)
 
 ---
 
@@ -73,7 +73,8 @@ This produces `main.js` in the repository root.
 | **Translate frontmatter** OFF | YAML block at top of translated file is identical to original |
 | **Translate frontmatter** ON | YAML block is translated along with the body |
 | Wrong API key | Notice: "Invalid API key. Get your key at https://l10n.dev/ws/keys" |
-| Insufficient balance | Notice: "Insufficient balance. Top up at https://l10n.dev/#pricing" |
+| Insufficient balance | Notice: "Insufficient balance. Subscribe or upgrade your plan at https://l10n.dev/#pricing" |
+| No API key entered | Settings show "New accounts get a 3-day free trial with 10,000 characters." and the **View plans** button opens the pricing page |
 | No note open, command triggered | Notice: "No active note to translate." |
 | Language picker closed without selecting | Translation cancelled silently |
 | Success | Notice shows characters used and remaining balance |

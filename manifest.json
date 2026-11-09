@@ -1,7 +1,7 @@
 {
 	"id": "note-ai-translator",
 	"name": "L10n.dev - AI Translator",
-	"version": "1.3.1",
+	"version": "1.3.2",
 	"minAppVersion": "1.1.7",
 	"description": "Translate notes, or selected text, into any of 165 languages with AI. Preserves Markdown formatting and structure. Powered by L10n.dev's AI translation API. Supports json, yaml, other plain-text formats.",
 	"author": "l10n.dev",
