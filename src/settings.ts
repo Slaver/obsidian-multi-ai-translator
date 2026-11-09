@@ -11,7 +11,7 @@ import { t, localizeUrl, getLocale, URLS } from "./i18n";
 
 export type { L10nSettings };
 
-const FREE_MONTHLY_CHARS = 10000;
+const TRIAL_CHARS = 10000;
 
 export const DEFAULT_SETTINGS: L10nSettings = {
 	apiKey: "",
@@ -235,13 +235,13 @@ export class L10nSettingsTab extends PluginSettingTab {
 		const quotaEl = this.quotaEl;
 		if (!quotaEl) return;
 
-		const freeText = t("settingBalanceFree", {
-			count: FREE_MONTHLY_CHARS.toLocaleString(),
-		});
-
 		const apiKey = this.plugin.settings.apiKey;
 		if (!apiKey) {
-			quotaEl.setText(freeText);
+			quotaEl.setText(
+				t("settingBalanceTrial", {
+					count: TRIAL_CHARS.toLocaleString(),
+				}),
+			);
 			return;
 		}
 
@@ -258,7 +258,7 @@ export class L10nSettingsTab extends PluginSettingTab {
 			})
 			.catch(() => {
 				if (this.quotaEl !== quotaEl) return;
-				quotaEl.setText(freeText);
+				quotaEl.setText("");
 			});
 	}
 }
