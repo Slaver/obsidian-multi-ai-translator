@@ -4,6 +4,6 @@
 	"version": "2.0.0",
 	"minAppVersion": "1.1.7",
 	"description": "Translate notes or selected text with the AI of your choice: Claude, Gemini, OpenAI or DeepSeek. Preserves Markdown formatting. Bring your own API keys.",
-	"author": "fork of l10n.dev AI Translator",
+	"author": "Slaver",
 	"isDesktopOnly": false
 }

@@ -1,6 +1,6 @@
 ﻿import { Editor, Menu, Plugin, TAbstractFile, TFile } from "obsidian";
-import { L10nSettings } from "./types";
-import { DEFAULT_SETTINGS, L10nSettingsTab } from "./settings";
+import { PluginSettings } from "./types";
+import { DEFAULT_SETTINGS, MultiAiSettingsTab } from "./settings";
 import {
 	translateActiveNote,
 	translateSelection,
@@ -9,8 +9,8 @@ import {
 } from "./translator";
 import { t } from "./i18n";
 
-export default class L10nPlugin extends Plugin {
-	settings: L10nSettings = { ...DEFAULT_SETTINGS };
+export default class MultiAiTranslatorPlugin extends Plugin {
+	settings: PluginSettings = { ...DEFAULT_SETTINGS };
 
 	async onload() {
 		await this.loadSettings();
@@ -128,13 +128,13 @@ export default class L10nPlugin extends Plugin {
 			),
 		);
 
-		this.addSettingTab(new L10nSettingsTab(this.app, this));
+		this.addSettingTab(new MultiAiSettingsTab(this.app, this));
 	}
 
 	onunload() {}
 
 	async loadSettings() {
-		const saved = ((await this.loadData()) ?? {}) as Partial<L10nSettings>;
+		const saved = ((await this.loadData()) ?? {}) as Partial<PluginSettings>;
 		this.settings = {
 			...DEFAULT_SETTINGS,
 			...saved,

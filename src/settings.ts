@@ -7,12 +7,12 @@ import {
 	SettingDefinitionItem,
 	SettingGroupItem,
 } from "obsidian";
-import { L10nSettings, OutputBehavior, PluginWithSettings, Provider } from "./types";
+import { PluginSettings, OutputBehavior, PluginWithSettings, Provider } from "./types";
 import { PROVIDERS, PROVIDER_IDS } from "./providers";
 import { TranslationService } from "./TranslationService";
 import { t } from "./i18n";
 
-export type { L10nSettings };
+export type { PluginSettings };
 
 export function defaultModels(): Record<Provider, string> {
 	return Object.fromEntries(
@@ -20,7 +20,7 @@ export function defaultModels(): Record<Provider, string> {
 	) as Record<Provider, string>;
 }
 
-export const DEFAULT_SETTINGS: L10nSettings = {
+export const DEFAULT_SETTINGS: PluginSettings = {
 	provider: "claude",
 	models: defaultModels(),
 	apiKeys: { claude: "", gemini: "", openai: "", deepseek: "" },
@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: L10nSettings = {
 	translateFrontmatter: false,
 };
 
-export class L10nSettingsTab extends PluginSettingTab {
+export class MultiAiSettingsTab extends PluginSettingTab {
 	plugin: PluginWithSettings;
 
 	/** Models fetched from provider APIs this session, per provider. */
@@ -99,7 +99,7 @@ export class L10nSettingsTab extends PluginSettingTab {
 	}
 
 	getControlValue(key: string): unknown {
-		return this.plugin.settings[key as keyof L10nSettings];
+		return this.plugin.settings[key as keyof PluginSettings];
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {

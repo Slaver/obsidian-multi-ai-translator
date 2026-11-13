@@ -9,7 +9,7 @@ export type OutputBehavior = "new-note" | "replace" | "append";
 
 export type Provider = "claude" | "gemini" | "openai" | "deepseek";
 
-export interface L10nSettings {
+export interface PluginSettings {
 	provider: Provider;
 	/** Selected model per provider. */
 	models: Record<Provider, string>;
@@ -22,6 +22,6 @@ export interface L10nSettings {
 
 export interface PluginWithSettings {
 	app: App;
-	settings: L10nSettings;
+	settings: PluginSettings;
 	saveSettings(): Promise<void>;
 }

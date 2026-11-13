@@ -14,18 +14,6 @@ import zhTW from "./zh-TW.json";
 export type Translations = { [K in keyof typeof en]: string };
 
 // ---------------------------------------------------------------------------
-// URL constants
-// ---------------------------------------------------------------------------
-
-export const URLS = {
-	BASE: "https://l10n.dev",
-	API_KEYS: "https://l10n.dev/ws/keys",
-	PRICING: "https://l10n.dev/#pricing",
-	GLOSSARY: "https://l10n.dev/ws/translation-glossary",
-	LINGUISTIC: "https://l10n.dev/ws/linguistic-instructions",
-} as const;
-
-// ---------------------------------------------------------------------------
 // Locale normalization
 // ---------------------------------------------------------------------------
 
@@ -136,25 +124,4 @@ export function t(
 	}
 
 	return str;
-}
-
-// ---------------------------------------------------------------------------
-// localizeUrl() – add a locale prefix to l10n.dev URLs
-// ---------------------------------------------------------------------------
-
-/**
- * Adds a locale prefix to l10n.dev URLs for non-English locales.
- * Unsupported codes fall back to English (no prefix).
- * Other domains (e.g. GitHub) are returned unchanged.
- */
-export function localizeUrl(url: string, locale: string): string {
-	if (!url.startsWith(URLS.BASE)) {
-		return url;
-	}
-	const resolved = normalizeLocale(locale);
-	if (resolved === "en") {
-		return url;
-	}
-	const path = url.slice(URLS.BASE.length); // e.g. "/ws/keys" or "/#pricing"
-	return `${URLS.BASE}/${resolved.toLowerCase()}${path}`;
 }

@@ -1,18 +1,12 @@
-# Testing the L10n.dev - AI Translator plugin
+# Testing the Multi-AI Translator plugin
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 18 or later
 - An Obsidian vault (desktop or mobile)
-- A [l10n.dev](https://l10n.dev) account and API key — sign up for a 3-day free trial (10,000 characters) and get your key at [l10n.dev/ws/keys](https://l10n.dev/ws/keys)
+- An API key for at least one provider: Claude, Gemini, OpenAI or DeepSeek
 
----
-
-## 1. Get the plugin files
-
-**For testing a release** — download `main.js`, `manifest.json`, and `styles.css` from the [latest release](../../releases/latest).
-
-**For local development** — build from source:
+## 1. Build
 
 ```bash
 npm install
@@ -21,79 +15,51 @@ npm run build
 
 This produces `main.js` in the repository root.
 
----
+## 2. Install into a vault
 
-## 2. Install into your vault (desktop)
+Copy `main.js`, `manifest.json` and `styles.css` into:
 
-1. Locate your vault folder. Inside it, open (or create) the directory:
-   ```
-   <YourVault>/.obsidian/plugins/note-ai-translator/
-   ```
-2. Copy the following files from the repository root into that folder:
-   - `main.js`
-   - `manifest.json`
-   - `styles.css` (if present)
-3. Open Obsidian.
-4. Go to **Settings → Community plugins**.
-5. If prompted, select **Turn on community plugins**.
-6. Find **L10n.dev - AI Translator** in the list and toggle it on.
+```
+<YourVault>/.obsidian/plugins/multi-ai-translator/
+```
 
-> **Tip:** Clone the repository directly into `<YourVault>/.obsidian/plugins/note-ai-translator/` and run `npm run dev` for live reloading during development.
+Then enable **Multi-AI Translator** in **Settings → Community plugins**. For live reloading during development, clone the repository into that folder and run `npm run dev`.
 
----
+## 3. Configure
 
-## 3. Configure the plugin
-
-1. Open **Settings → L10n.dev - AI Translator**.
-2. Paste your l10n.dev API key into the **API key** field — the remaining balance should appear below it automatically.
-3. Choose an **Output behavior** and set the **Translate frontmatter** toggle as desired.
-
----
+1. Open **Settings → Multi-AI Translator**.
+2. Choose an **AI provider**. The model and API key rows of that provider appear below it.
+3. Paste the API key. Optionally change the model or press **Fetch models**.
+4. Choose an **Output behavior** and set **Translate frontmatter** as desired.
 
 ## 4. Run a translation
 
-1. Open any Markdown note.
-2. Trigger translation using any of these entry points:
-   - **Command palette** — `Ctrl/Cmd + P` → `Translate current note`
-   - **Ribbon** — select the globe icon in the left sidebar
-   - **Context menu (editor)** — right-click inside the note body → **Translate…**
-   - **Context menu (file explorer)** — right-click a `.md` file → **Translate…**
-3. Type a language name in the picker (e.g. "Spanish") and select a result.
-4. The output is saved according to the output behavior setting.
-
----
+Open a note and use the command palette (`Translate current note`), the ribbon icon, or the editor / file explorer context menu. Pick a language and wait for the notice.
 
 ## 5. Manual test checklist
 
 | Scenario | Expected result |
 |---|---|
-| Valid API key, output = **create new note** | `{filename} ({lang-code}).md` created in the same folder |
-| Valid API key, output = **replace** | Current note content replaced |
-| Valid API key, output = **append** | Translation appended below `---` |
-| **Translate frontmatter** OFF | YAML block at top of translated file is identical to original |
-| **Translate frontmatter** ON | YAML block is translated along with the body |
-| Wrong API key | Notice: "Invalid API key. Get your key at https://l10n.dev/ws/keys" |
-| Insufficient balance | Notice: "Insufficient balance. Subscribe or upgrade your plan at https://l10n.dev/#pricing" |
-| No API key entered | Settings show "New accounts get a 3-day free trial with 10,000 characters." and the **View plans** button opens the pricing page |
+| Output = **create new note** | `{filename} ({lang-code}).md` created in the same folder |
+| Output = **replace** | Current note content replaced |
+| Output = **append** | Translation appended below `---` |
+| **Translate frontmatter** OFF | YAML block is identical to the original |
+| **Translate frontmatter** ON | YAML block is translated too |
+| Switch provider in settings | Only that provider's model and key rows are shown; other keys are kept |
+| Wrong API key | Notice: "Invalid <provider> API key." |
+| No API key for selected provider | Notice asking to set the key in settings |
+| Rate limit / quota exceeded | Notice about rate limit; two automatic retries first |
+| Long note (> 12,000 characters) | Progress notice "N of M parts done"; output keeps order and formatting |
+| Code blocks, URLs, wikilinks | Left untranslated |
+| Translate selection | Only the selection is replaced; nothing happens if it changed meanwhile |
+| **Fetch models** with a valid key | Suggestions list is extended |
 | No note open, command triggered | Notice: "No active note to translate." |
 | Language picker closed without selecting | Translation cancelled silently |
-| Success | Notice shows characters used and remaining balance |
 
----
+Repeat on mobile after copying the three files into the vault's plugin folder.
 
-## 6. Mobile testing
-
-1. Build `main.js` on desktop (`npm run build`).
-2. Transfer `main.js`, `manifest.json`, and `styles.css` to your vault's `.obsidian/plugins/note-ai-translator/` folder using a sync solution (e.g. iCloud, Obsidian Sync, or manual file transfer).
-3. Open Obsidian on the mobile device and enable the plugin as described in step 2.
-4. Repeat the manual test checklist on mobile, paying attention to the language picker and context menu behaviour.
-
----
-
-## 7. Linting
+## 6. Linting
 
 ```bash
 npm run lint
 ```
-
-The project uses [eslint-plugin-obsidianmd](https://github.com/obsidianmd/eslint-plugin) for Obsidian-specific code guidelines alongside `typescript-eslint`.
