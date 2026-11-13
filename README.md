@@ -17,13 +17,7 @@ Fork of [l10n-dev/obsidian-plugin-ai-translator](https://github.com/l10n-dev/obs
 
 ## Screenshots
 
-**Settings**: pick a provider, then set its model and API key. Each provider keeps its own key and model.
-
-<img src="docs/settings.png" alt="Multi-AI Translator settings" width="600">
-
-**Context menu**: translate a note from the file explorer or the editor.
-
-<img src="docs/menu.png" alt="Translate items in the context menu" width="320">
+<img src="docs/screenshot.png" alt="Multi-AI Translator: settings and context menu">
 
 ## Installation
 
