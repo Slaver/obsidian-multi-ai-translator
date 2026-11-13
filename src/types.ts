@@ -1,3 +1,5 @@
+import type { App } from "obsidian";
+
 export interface Language {
 	code: string;
 	name: string;
@@ -5,46 +7,18 @@ export interface Language {
 
 export type OutputBehavior = "new-note" | "replace" | "append";
 
+export type Provider = "claude" | "gemini" | "openai" | "deepseek";
+
 export interface L10nSettings {
-	apiKey: string;
+	provider: Provider;
+	/** Selected model per provider. */
+	models: Record<Provider, string>;
+	/** API key per provider. */
+	apiKeys: Record<Provider, string>;
 	outputBehavior: OutputBehavior;
 	translateFrontmatter: boolean;
-	generateGlossary: boolean;
 	lastLanguage?: Language;
 }
-
-export interface TranslateRequest {
-	sourceStrings: string;
-	targetLanguageCode: string;
-	format?: string;
-	useContractions?: boolean;
-	translateMetadata?: boolean;
-	generateGlossary?: boolean;
-	client?: string;
-}
-
-export interface TranslationUsage {
-	charsUsed: number;
-	details: {
-		sourceStringsCharCount: number;
-		terminologyCharCount: number;
-		glossaryCharCount: number;
-		instructionCharCount: number;
-	};
-}
-
-export interface TranslateResponse {
-	translations: string;
-	finishReason: string;
-	usage: TranslationUsage;
-	remainingBalance?: number | null;
-}
-
-export interface BalanceResponse {
-	currentBalance: number;
-}
-
-import type { App } from "obsidian";
 
 export interface PluginWithSettings {
 	app: App;

@@ -1,13 +1,12 @@
 import { App, SuggestModal } from "obsidian";
 import { Language } from "./types";
-import { TranslationService } from "./TranslationService";
+import { searchLanguages } from "./languages";
 import { t } from "./i18n";
 
 export class LanguageSuggestModal extends SuggestModal<Language> {
 	private onSelect: (lang: Language) => void;
 	private lastLanguage: Language | undefined;
-	private debounceTimer: number | null = null;
-
+	
 	constructor(
 		app: App,
 		lastLanguage: Language | undefined,
@@ -23,21 +22,11 @@ export class LanguageSuggestModal extends SuggestModal<Language> {
 		);
 	}
 
-	async getSuggestions(query: string): Promise<Language[]> {
-		if (!query.trim()) {
-			return this.lastLanguage ? [this.lastLanguage] : [];
-		}
-		return new Promise((resolve) => {
-			if (this.debounceTimer !== null) {
-				window.clearTimeout(this.debounceTimer);
-			}
-			this.debounceTimer = window.setTimeout(() => {
-				this.debounceTimer = null;
-				TranslationService.predictLanguages(query)
-					.then(resolve)
-					.catch(() => resolve([]));
-			}, 300);
-		});
+	getSuggestions(query: string): Language[] {
+		const found = searchLanguages(query);
+		const last = this.lastLanguage;
+		if (!last) return found;
+		return [last, ...found.filter((l) => l.code !== last.code)];
 	}
 
 	renderSuggestion(lang: Language, el: HTMLElement): void {

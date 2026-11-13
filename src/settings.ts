@@ -1,61 +1,79 @@
 import {
 	App,
+	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
 	SettingDefinitionItem,
+	SettingGroupItem,
 } from "obsidian";
-import { L10nSettings, OutputBehavior, PluginWithSettings } from "./types";
+import { L10nSettings, OutputBehavior, PluginWithSettings, Provider } from "./types";
+import { PROVIDERS, PROVIDER_IDS } from "./providers";
 import { TranslationService } from "./TranslationService";
-import { t, localizeUrl, getLocale, URLS } from "./i18n";
+import { t } from "./i18n";
 
 export type { L10nSettings };
 
-const TRIAL_CHARS = 10000;
+export function defaultModels(): Record<Provider, string> {
+	return Object.fromEntries(
+		PROVIDER_IDS.map((id) => [id, PROVIDERS[id].defaultModel]),
+	) as Record<Provider, string>;
+}
 
 export const DEFAULT_SETTINGS: L10nSettings = {
-	apiKey: "",
+	provider: "claude",
+	models: defaultModels(),
+	apiKeys: { claude: "", gemini: "", openai: "", deepseek: "" },
 	outputBehavior: "new-note",
 	translateFrontmatter: false,
-	generateGlossary: false,
 };
 
 export class L10nSettingsTab extends PluginSettingTab {
 	plugin: PluginWithSettings;
 
-	private quotaEl: HTMLElement | null = null;
+	/** Models fetched from provider APIs this session, per provider. */
+	private fetched: Partial<Record<Provider, string[]>> = {};
 
 	constructor(app: App, plugin: Plugin & PluginWithSettings) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
-	/**
-	 * Declarative definitions used by Obsidian 1.13.0 and later, which render
-	 * the tab from these and index them for settings search. The API key and
-	 * balance rows stay imperative: the former needs a masked input, the
-	 * latter an asynchronously loaded value.
-	 */
+	private get provider(): Provider {
+		return this.plugin.settings.provider;
+	}
+
+	/** Declarative definitions used by Obsidian 1.13.0 and later. */
 	getSettingDefinitions(): SettingDefinitionItem[] {
+		// Model and key rows of the active provider only; they sit right
+		// under the provider dropdown and swap when it changes.
+		const providerItems: SettingGroupItem[] = PROVIDER_IDS.flatMap(
+			(id) => [
+				{
+					name: t("settingModelName"),
+					desc: t("settingModelDesc"),
+					visible: () => this.provider === id,
+					render: (s: Setting) => this.buildModel(s, id),
+				},
+				{
+					name: t("settingApiKeyName"),
+					desc: this.apiKeyDesc(id),
+					visible: () => this.provider === id,
+					render: (s: Setting) => this.buildApiKey(s, id),
+				},
+			],
+		);
 		return [
 			{
 				type: "group",
 				heading: t("settingHeading"),
 				items: [
 					{
-						name: t("settingApiKeyName"),
-						desc: this.apiKeyDesc(),
-						render: (setting: Setting) => {
-							this.buildApiKeyControl(setting);
-						},
+						name: t("settingProviderName"),
+						desc: t("settingProviderDesc"),
+						render: (s: Setting) => this.buildProvider(s),
 					},
-					{
-						name: t("settingBalanceName"),
-						desc: t("settingBalanceDesc"),
-						render: (setting: Setting) => {
-							this.buildBalanceControl(setting);
-						},
-					},
+					...providerItems,
 					{
 						name: t("settingOutputName"),
 						desc: t("settingOutputDesc"),
@@ -75,15 +93,6 @@ export class L10nSettingsTab extends PluginSettingTab {
 							defaultValue: DEFAULT_SETTINGS.translateFrontmatter,
 						},
 					},
-					{
-						name: t("settingGlossaryName"),
-						desc: this.glossaryDesc(),
-						control: {
-							type: "toggle",
-							key: "generateGlossary",
-							defaultValue: DEFAULT_SETTINGS.generateGlossary,
-						},
-					},
 				],
 			},
 		];
@@ -101,45 +110,52 @@ export class L10nSettingsTab extends PluginSettingTab {
 			case "translateFrontmatter":
 				this.plugin.settings.translateFrontmatter = value as boolean;
 				break;
-			case "generateGlossary":
-				this.plugin.settings.generateGlossary = value as boolean;
-				break;
 			default:
 				return;
 		}
 		await this.plugin.saveSettings();
 	}
 
-	/**
-	 * Imperative fallback for Obsidian versions older than 1.13.0. Bypassed
-	 * once getSettingDefinitions() returns a non-empty array.
-	 */
+	/** Imperative fallback for Obsidian versions older than 1.13.0. */
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-
 		new Setting(containerEl).setName(t("settingHeading")).setHeading();
 
-		const apiKeySetting = new Setting(containerEl)
-			.setName(t("settingApiKeyName"))
-			.setDesc(this.apiKeyDesc());
-		this.buildApiKeyControl(apiKeySetting);
+		this.buildProvider(
+			new Setting(containerEl)
+				.setName(t("settingProviderName"))
+				.setDesc(t("settingProviderDesc")),
+		);
 
-		const balanceSetting = new Setting(containerEl)
-			.setName(t("settingBalanceName"))
-			.setDesc(t("settingBalanceDesc"));
-		this.buildBalanceControl(balanceSetting);
+		// One container per provider, directly under the dropdown.
+		this.sections = {};
+		for (const id of PROVIDER_IDS) {
+			const section = containerEl.createDiv();
+			this.buildModel(
+				new Setting(section)
+					.setName(t("settingModelName"))
+					.setDesc(t("settingModelDesc")),
+				id,
+			);
+			this.buildApiKey(
+				new Setting(section)
+					.setName(t("settingApiKeyName"))
+					.setDesc(this.apiKeyDesc(id)),
+				id,
+			);
+			this.sections[id] = section;
+		}
+		this.updateSections();
 
 		new Setting(containerEl)
 			.setName(t("settingOutputName"))
 			.setDesc(t("settingOutputDesc"))
-			.addDropdown((dropdown) => {
-				dropdown
-					.addOptions(this.outputOptions())
+			.addDropdown((dd) => {
+				dd.addOptions(this.outputOptions())
 					.setValue(this.plugin.settings.outputBehavior)
-					.onChange(async (value) => {
-						this.plugin.settings.outputBehavior =
-							value as OutputBehavior;
+					.onChange(async (v) => {
+						this.plugin.settings.outputBehavior = v as OutputBehavior;
 						await this.plugin.saveSettings();
 					});
 			});
@@ -147,26 +163,22 @@ export class L10nSettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(t("settingFrontmatterName"))
 			.setDesc(t("settingFrontmatterDesc"))
-			.addToggle((toggle) => {
-				toggle
-					.setValue(this.plugin.settings.translateFrontmatter)
-					.onChange(async (value) => {
-						this.plugin.settings.translateFrontmatter = value;
+			.addToggle((tg) => {
+				tg.setValue(this.plugin.settings.translateFrontmatter).onChange(
+					async (v) => {
+						this.plugin.settings.translateFrontmatter = v;
 						await this.plugin.saveSettings();
-					});
+					},
+				);
 			});
+	}
 
-		new Setting(containerEl)
-			.setName(t("settingGlossaryName"))
-			.setDesc(this.glossaryDesc())
-			.addToggle((toggle) => {
-				toggle
-					.setValue(this.plugin.settings.generateGlossary)
-					.onChange(async (value) => {
-						this.plugin.settings.generateGlossary = value;
-						await this.plugin.saveSettings();
-					});
-			});
+	private sections: Partial<Record<Provider, HTMLElement>> = {};
+
+	private updateSections(): void {
+		for (const id of PROVIDER_IDS) {
+			this.sections[id]?.toggle(id === this.provider);
+		}
 	}
 
 	private outputOptions(): Record<string, string> {
@@ -177,8 +189,8 @@ export class L10nSettingsTab extends PluginSettingTab {
 		};
 	}
 
-	private apiKeyDesc(): DocumentFragment {
-		const url = localizeUrl(URLS.API_KEYS, getLocale());
+	private apiKeyDesc(id: Provider): DocumentFragment {
+		const url = PROVIDERS[id].keyUrl;
 		return createFragment((frag) => {
 			frag.appendText(t("settingApiKeyDescPrefix"));
 			frag.createEl("a", {
@@ -189,76 +201,84 @@ export class L10nSettingsTab extends PluginSettingTab {
 		});
 	}
 
-	private glossaryDesc(): DocumentFragment {
-		return createFragment((frag) => {
-			frag.appendText(t("settingGlossaryDesc"));
-			frag.createEl("a", {
-				text: t("settingGlossaryManageLink"),
-				href: localizeUrl(URLS.GLOSSARY, getLocale()),
-				attr: { target: "_blank", rel: "noopener noreferrer" },
-				cls: "inline-link",
-			});
-			frag.createEl("a", {
-				text: t("settingLinguisticLink"),
-				href: localizeUrl(URLS.LINGUISTIC, getLocale()),
-				attr: { target: "_blank", rel: "noopener noreferrer" },
-				cls: "inline-link",
+	/** Active provider dropdown. */
+	private buildProvider(setting: Setting): void {
+		setting.addDropdown((dd) => {
+			for (const id of PROVIDER_IDS) dd.addOption(id, PROVIDERS[id].name);
+			dd.setValue(this.provider).onChange(async (v) => {
+				this.plugin.settings.provider = v as Provider;
+				await this.plugin.saveSettings();
+				this.updateSections();
+				(this as { refreshDomState?: () => void }).refreshDomState?.();
 			});
 		});
 	}
 
-	/** Masked API key input; refreshes the balance readout on every change. */
-	private buildApiKeyControl(setting: Setting): void {
+	/** Model text field with suggestions, reset and fetch-from-API buttons. */
+	private buildModel(setting: Setting, id: Provider): void {
+		const info = PROVIDERS[id];
+		const listId = `ai-translator-models-${id}`;
+		let input: HTMLInputElement | null = null;
+
+		const fillList = (list: HTMLDataListElement) => {
+			list.empty();
+			const all = new Set([...info.models, ...(this.fetched[id] ?? [])]);
+			for (const m of all) list.createEl("option", { value: m });
+		};
+
+		setting.addText((text) => {
+			input = text.inputEl;
+			text.setPlaceholder(info.defaultModel)
+				.setValue(this.plugin.settings.models[id])
+				.onChange(async (v) => {
+					this.plugin.settings.models[id] = v.trim() || info.defaultModel;
+					await this.plugin.saveSettings();
+				});
+			text.inputEl.setAttr("list", listId);
+			const list = setting.controlEl.createEl("datalist", { attr: { id: listId } });
+			fillList(list);
+			setting.addExtraButton((b) =>
+				b
+					.setIcon("rotate-ccw")
+					.setTooltip(t("settingResetModel"))
+					.onClick(async () => {
+						this.plugin.settings.models[id] = info.defaultModel;
+						await this.plugin.saveSettings();
+						if (input) input.value = info.defaultModel;
+					}),
+			);
+			setting.addButton((b) =>
+				b.setButtonText(t("settingFetchModels")).onClick(async () => {
+					const key = this.plugin.settings.apiKeys[id];
+					if (!key) {
+						new Notice(t("noticeSetApiKey", { name: info.name }));
+						return;
+					}
+					try {
+						const models = await TranslationService.listModels(id, key);
+						this.fetched[id] = models.sort();
+						fillList(list);
+						new Notice(
+							t("settingModelsFetched", { count: models.length }),
+						);
+					} catch {
+						new Notice(t("settingModelsFetchFailed"));
+					}
+				}),
+			);
+		});
+	}
+
+	/** Masked API key input for the currently selected provider. */
+	private buildApiKey(setting: Setting, id: Provider): void {
 		setting.addText((text) => {
 			text.inputEl.type = "password";
 			text.setPlaceholder(t("settingApiKeyPlaceholder"))
-				.setValue(this.plugin.settings.apiKey)
-				.onChange(async (value) => {
-					this.plugin.settings.apiKey = value.trim();
+				.setValue(this.plugin.settings.apiKeys[id])
+				.onChange(async (v) => {
+					this.plugin.settings.apiKeys[id] = v.trim();
 					await this.plugin.saveSettings();
-					this.refreshBalance();
 				});
 		});
-	}
-
-	private buildBalanceControl(setting: Setting): void {
-		setting.addButton((btn) => {
-			btn.setButtonText(t("settingBalanceBuyBtn")).onClick(() => {
-				window.open(localizeUrl(URLS.PRICING, getLocale()), "_blank");
-			});
-		});
-		this.quotaEl = setting.descEl.createSpan({ text: "" });
-		this.refreshBalance();
-	}
-
-	private refreshBalance(): void {
-		const quotaEl = this.quotaEl;
-		if (!quotaEl) return;
-
-		const apiKey = this.plugin.settings.apiKey;
-		if (!apiKey) {
-			quotaEl.setText(
-				t("settingBalanceTrial", {
-					count: TRIAL_CHARS.toLocaleString(),
-				}),
-			);
-			return;
-		}
-
-		quotaEl.setText(t("settingBalanceLoading"));
-		TranslationService.getBalance(apiKey)
-			.then((res) => {
-				// A re-render may have replaced the element we started with.
-				if (this.quotaEl !== quotaEl) return;
-				quotaEl.setText(
-					t("settingBalanceCount", {
-						count: res.currentBalance.toLocaleString(),
-					}),
-				);
-			})
-			.catch(() => {
-				if (this.quotaEl !== quotaEl) return;
-				quotaEl.setText("");
-			});
 	}
 }

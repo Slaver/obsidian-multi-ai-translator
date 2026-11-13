@@ -1,7 +1,7 @@
 {
-	"name": "obsidian-plugin-ai-translator",
+	"name": "obsidian-multi-ai-translator",
 	"version": "1.3.2",
-	"description": "Obsidian plugin to translate notes with AI using l10n.dev",
+	"description": "Obsidian plugin to translate notes with Claude, Gemini, OpenAI or DeepSeek",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {

@@ -1,10 +1,9 @@
 {
-	"id": "note-ai-translator",
-	"name": "L10n.dev - AI Translator",
-	"version": "1.3.2",
+	"id": "multi-ai-translator",
+	"name": "Multi-AI Translator",
+	"version": "2.0.0",
 	"minAppVersion": "1.1.7",
-	"description": "Translate notes, or selected text, into any of 165 languages with AI. Preserves Markdown formatting and structure. Powered by L10n.dev's AI translation API. Supports json, yaml, other plain-text formats.",
-	"author": "l10n.dev",
-	"authorUrl": "https://l10n.dev",
+	"description": "Translate notes or selected text with the AI of your choice: Claude, Gemini, OpenAI or DeepSeek. Preserves Markdown formatting. Bring your own API keys.",
+	"author": "fork of l10n.dev AI Translator",
 	"isDesktopOnly": false
 }

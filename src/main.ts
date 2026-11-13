@@ -134,11 +134,13 @@ export default class L10nPlugin extends Plugin {
 	onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			(await this.loadData()) as Partial<L10nSettings>,
-		);
+		const saved = ((await this.loadData()) ?? {}) as Partial<L10nSettings>;
+		this.settings = {
+			...DEFAULT_SETTINGS,
+			...saved,
+			models: { ...DEFAULT_SETTINGS.models, ...saved.models },
+			apiKeys: { ...DEFAULT_SETTINGS.apiKeys, ...saved.apiKeys },
+		};
 	}
 
 	async saveSettings() {

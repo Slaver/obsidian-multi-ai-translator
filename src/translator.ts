@@ -1,20 +1,14 @@
 import { Editor, EditorPosition, Notice, TFile } from "obsidian";
 import { LanguageSuggestModal } from "./LanguageSuggestModal";
 import { TranslationService } from "./TranslationService";
-import { Language, PluginWithSettings, TranslationUsage } from "./types";
-import { t, localizeUrl, getLocale, URLS } from "./i18n";
+import { Language, PluginWithSettings } from "./types";
+import { PROVIDERS } from "./providers";
+import { t } from "./i18n";
 
 const FRONTMATTER_REGEX = /^(---\r?\n[\s\S]*?\r?\n---\r?\n?)([\s\S]*)$/;
 
-interface TranslationResult {
-	translated: string;
-	usage: TranslationUsage;
-	remainingBalance?: number | null;
-}
-
 interface TranslationOptions {
 	format: string;
-	translateMetadata: boolean;
 }
 
 interface SelectionRange {
@@ -33,15 +27,16 @@ function splitFrontmatter(
 }
 
 function requireApiKey(plugin: PluginWithSettings): boolean {
-	if (!plugin.settings.apiKey) {
-		new Notice(t("noticeSetApiKey"));
+	const { provider, apiKeys } = plugin.settings;
+	if (!apiKeys[provider]) {
+		new Notice(t("noticeSetApiKey", { name: PROVIDERS[provider].name }));
 		return false;
 	}
 	return true;
 }
 
 /**
- * Calls the translation API while showing a progress notice.
+ * Calls the selected AI provider while showing a progress notice.
  * Returns null after showing the matching error notice on failure.
  */
 async function requestTranslation(
@@ -49,39 +44,41 @@ async function requestTranslation(
 	sourceText: string,
 	lang: Language,
 	options: TranslationOptions,
-): Promise<TranslationResult | null> {
+): Promise<string | null> {
+	const { provider, apiKeys, models } = plugin.settings;
+	const info = PROVIDERS[provider];
 	const progressNotice = new Notice(t("noticeTranslating"), 0);
 	try {
-		const result = await TranslationService.translate(
-			plugin.settings.apiKey,
+		return await TranslationService.translate(
 			{
-				sourceStrings: sourceText,
-				targetLanguageCode: lang.code,
+				provider,
+				apiKey: apiKeys[provider],
+				model: models[provider] || info.defaultModel,
+				text: sourceText,
+				languageName: lang.name,
+				languageCode: lang.code,
 				format: options.format,
-				useContractions: true,
-				translateMetadata: options.translateMetadata,
-				generateGlossary: plugin.settings.generateGlossary,
-				client: "obsidian-plugin",
+			},
+			(done, total) => {
+				if (total > 1) {
+					progressNotice.setMessage(
+						t("noticeTranslatingProgress", {
+							done,
+							total,
+						}),
+					);
+				}
 			},
 		);
-		return {
-			translated: result.translations,
-			usage: result.usage,
-			remainingBalance: result.remainingBalance,
-		};
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : "";
 		if (msg === "unauthorized") {
+			new Notice(t("noticeInvalidKey", { name: info.name }));
+		} else if (msg === "rate_limited") {
+			new Notice(t("noticeRateLimited", { name: info.name }));
+		} else if (msg.startsWith("api_error:")) {
 			new Notice(
-				t("noticeInvalidKey", {
-					url: localizeUrl(URLS.API_KEYS, getLocale()),
-				}),
-			);
-		} else if (msg === "quota_exceeded") {
-			new Notice(
-				t("noticeInsufficientBalance", {
-					url: localizeUrl(URLS.PRICING, getLocale()),
-				}),
+				t("noticeApiError", { detail: msg.slice("api_error:".length) }),
 			);
 		} else {
 			new Notice(t("noticeTranslationFailed"));
@@ -89,41 +86,6 @@ async function requestTranslation(
 		return null;
 	} finally {
 		progressNotice.hide();
-	}
-}
-
-function notifyUsage(
-	usage: TranslationUsage,
-	remainingBalance?: number | null,
-): void {
-	const balanceText =
-		remainingBalance != null
-			? t("noticeRemainingBalance", {
-					count: remainingBalance.toLocaleString(),
-				})
-			: "";
-
-	if (usage.charsUsed > usage.details.sourceStringsCharCount) {
-		new Notice(
-			t("noticeTranslationCompleteExtended", {
-				count: usage.charsUsed.toLocaleString(),
-				sourceCount:
-					usage.details.sourceStringsCharCount.toLocaleString(),
-				glossaryCount: usage.details.glossaryCharCount.toLocaleString(),
-				instructionCount:
-					usage.details.instructionCharCount.toLocaleString(),
-				terminologyCount:
-					usage.details.terminologyCharCount.toLocaleString(),
-			}) + (remainingBalance != null ? "\r\n\r\n" + balanceText : ""),
-			20000,
-		);
-	} else {
-		new Notice(
-			t("noticeTranslationComplete", {
-				count: usage.charsUsed.toLocaleString(),
-			}) + balanceText,
-			20000,
-		);
 	}
 }
 
@@ -152,13 +114,12 @@ async function doTranslate(
 
 	const result = await requestTranslation(plugin, sourceText, lang, {
 		format: file.extension ?? "md",
-		translateMetadata: plugin.settings.translateFrontmatter,
 	});
 	if (!result) {
 		return;
 	}
 
-	const { translated, usage, remainingBalance } = result;
+	const translated = result;
 	const outputContent = frontmatter + translated;
 	const { outputBehavior } = plugin.settings;
 
@@ -188,7 +149,7 @@ async function doTranslate(
 		return;
 	}
 
-	notifyUsage(usage, remainingBalance);
+	new Notice(t("noticeTranslationComplete"));
 }
 
 /**
@@ -204,13 +165,12 @@ async function doTranslateSelection(
 ): Promise<void> {
 	const result = await requestTranslation(plugin, sourceText, lang, {
 		format: plugin.app.workspace.getActiveFile()?.extension ?? "md",
-		translateMetadata: false,
 	});
 	if (!result) {
 		return;
 	}
 
-	const { translated, usage, remainingBalance } = result;
+	const translated = result;
 
 	try {
 		// The note may have been edited while the translation was in flight,
@@ -228,7 +188,7 @@ async function doTranslateSelection(
 		return;
 	}
 
-	notifyUsage(usage, remainingBalance);
+	new Notice(t("noticeTranslationComplete"));
 }
 
 export function translateActiveNote(
