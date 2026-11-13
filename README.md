@@ -15,6 +15,16 @@ Fork of [l10n-dev/obsidian-plugin-ai-translator](https://github.com/l10n-dev/obs
 - Long notes are split into chunks and translated in parallel.
 - Mobile-compatible: uses Obsidian's `requestUrl`, no Node.js APIs.
 
+## Screenshots
+
+**Settings**: pick a provider, then set its model and API key. Each provider keeps its own key and model.
+
+<img src="docs/settings.png" alt="Multi-AI Translator settings" width="600">
+
+**Context menu**: translate a note from the file explorer or the editor.
+
+<img src="docs/menu.png" alt="Translate items in the context menu" width="320">
+
 ## Installation
 
 Not in the community store. Build and copy manually:
